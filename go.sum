@@ -1,0 +1,12 @@
+github.com/bgadrian/data-structures v0.0.0-20171217125123-a6f5517ea9d5 h1:yjY5aaTha8b+dK5n7R3cC6FllxeVp33Tl6gn/VKE7io=
+github.com/bgadrian/data-structures v0.0.0-20171217125123-a6f5517ea9d5/go.mod h1:1Zq8HZwcdvnakaMf5nJMBqcAK8Z7yRbCSKjPdRIvOAI=
+github.com/go-kit/kit v0.12.0 h1:e4o3o3IsBfAKQh5Qbbiqyfu97Ku7jrO/JbohvztANh4=
+github.com/go-kit/kit v0.12.0/go.mod h1:lHd+EkCZPIwYItmGDDRdhinkzX2A1sj+M9biaEaizzs=
+github.com/go-kit/log v0.2.0 h1:7i2K3eKTos3Vc0enKCfnVcgHh2olr/MyfboYq7cAcFw=
+github.com/go-kit/log v0.2.0/go.mod h1:NwTd00d/i8cPZ3xOwwiv2PO5MOcx78fFErGNcVmBjv0=
+github.com/go-logfmt/logfmt v0.5.1 h1:otpy5pqBCBZ1ng9RQ0dPu4PN7ba75Y/aA+UpowDyNVA=
+github.com/go-logfmt/logfmt v0.5.1/go.mod h1:WYhtIu8zTZfxdn5+rREduYbwxfcBr/Vr6KEVveWlfTs=
+github.com/google/uuid v1.2.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/karalabe/cookiejar v0.0.0-20150724131613-8dcd6a7f4951 h1:RvrSyFrAPxRRT+esLZoyonA7dF476wyKZZoYhWa3m4g=
+github.com/karalabe/cookiejar v0.0.0-20150724131613-8dcd6a7f4951/go.mod h1:6HfYw/U2hmD5Ch5Iw2OjmitXa6EtSl25NmrMwB4h8bQ=
+github.com/lithammer/shortuuid/v3 v3.0.7/go.mod h1:vMk8ke37EmiewwolSO1NLW8vP4ZaKlRuDIi8tWWmAts=

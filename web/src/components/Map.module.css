@@ -1,0 +1,10 @@
+.mapContainer {
+    height: 700px;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.mapContainerSmall {
+    height: 100px;
+    width: 100%;
+}

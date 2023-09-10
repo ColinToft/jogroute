@@ -1,0 +1,21 @@
+steps:
+    - name: "gcr.io/cloud-builders/docker"
+      args:
+          [
+              "build",
+              "-t",
+              "gcr.io/jogroute-398623/mapdata",
+              "-f",
+              "Dockerfile.mapdata",
+              ".",
+          ]
+    - name: "gcr.io/cloud-builders/docker"
+      args:
+          [
+              "build",
+              "-t",
+              "gcr.io/jogroute-398623/routegen",
+              "-f",
+              "Dockerfile.routegen",
+              ".",
+          ]

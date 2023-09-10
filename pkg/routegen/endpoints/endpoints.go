@@ -68,7 +68,7 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 			return
 		}
 
-		count := 50
+		count := 10
 		distanceRange := 20.0
 		minCycleLength := distance - 250
 		minDistance := distance - distanceRange

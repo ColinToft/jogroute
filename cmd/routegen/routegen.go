@@ -25,7 +25,7 @@ const (
 func main() {
 	var (
 		logger   log.Logger
-		httpAddr = net.JoinHostPort("localhost", envString("PORT", defaultPort))
+		httpAddr = net.JoinHostPort("0.0.0.0", envString("PORT", defaultPort))
 	)
 
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))

@@ -1,0 +1,20 @@
+FROM golang:latest
+
+WORKDIR /app
+
+# copy Go modules and dependencies to image
+COPY go.mod ./
+
+# download Go modules and dependencies
+RUN go mod download
+
+# copy directory files i.e all files ending with .go
+COPY . .
+
+RUN go build -o ./mapdata ./cmd/mapdata/mapdata.go
+
+ENV PORT 8081
+
+EXPOSE $PORT
+
+CMD ["./mapdata"]

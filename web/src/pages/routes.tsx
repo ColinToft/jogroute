@@ -80,8 +80,16 @@ const RoutesPage: React.FC = () => {
 
         const { lat, lon, distance } = router.query;
         console.log(lat, lon, distance);
+
+        // Get the URL (either localhost or the deployed URL).
+        const URL =
+            process.env.NODE_ENV === "development"
+                ? "http://localhost:8080"
+                : process.env.NEXT_PUBLIC_ROUTEGEN_URL;
+
+        
         const eventSource = new EventSource(
-            `http://localhost:8080/api/generate?lat=${lat}&lon=${lon}&distance=${distance}`
+            `${URL}/api/generate?lat=${lat}&lon=${lon}&distance=${distance}`
         );
         eventSource.onopen = () => console.log("Connection opened.");
         eventSource.onerror = () => console.log("Connection error.");
@@ -183,7 +191,6 @@ const RoutesPage: React.FC = () => {
                                             <Grid templateColumns="repeat(2, 1fr)">
                                                 <RoutePreviewWithNoSSR
                                                     points={route.route}
-                                                    objectFit="cover"
                                                 />
                                                 <Stack>
                                                     <CardBody>

@@ -55,9 +55,6 @@ func (l LineSegment) IsCloseAndParallel(other LineSegment, doPrint bool) bool {
 	if l.From == other.From || l.From == other.To || l.To == other.From || l.To == other.To {
 		return false
 	}
-	if l.Id == 5343 && other.Id == 5346 {
-		fmt.Println(l.From, l.To, other.From, other.To)
-	}
 
 	// Find the angle between the two lines arc cos of the dot product of the two lines divided by the product of the lengths
 	dotproduct := (l.To.Lat-l.From.Lat)*(other.To.Lat-other.From.Lat) + (l.To.Lon-l.From.Lon)*(other.To.Lon-other.From.Lon)
@@ -346,7 +343,6 @@ node:
 			overlapsWith := Union(edge1.OverlapsWith, edge2.OverlapsWith)
 
 			// See how far we can extend the beginning of the edge
-			fmt.Println("Extending the beginning of the edge")
 			for len(g.AdjacencyList[start]) == 2 {
 				secondNode := start
 				if g.AdjacencyList[secondNode][0].Id == edge1.Id {
@@ -368,7 +364,6 @@ node:
 			}
 
 			// See how far we can extend the end of the edge
-			fmt.Println("Extending the end of the edge")
 			for len(g.AdjacencyList[end]) == 2 {
 				secondLastNode := end
 				if g.AdjacencyList[secondLastNode][0].Id == edge2.Id {

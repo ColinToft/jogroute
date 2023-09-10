@@ -10,6 +10,7 @@ import {
     LayerGroup,
     useMap,
 } from "react-leaflet";
+import L from "leaflet";
 
 const icon = L.icon({
     iconUrl: "images/marker-icon.png",
@@ -29,12 +30,15 @@ const metadata = {
 };
 
 interface MapProps {
-    startLocation: [number, number]; // The start location of the route.
-    setStartLocation: (latlng: [number, number]) => void; // Function to set the start location.
+    points: [number, number][]; // The points on the route
 }
 
+type CoordList = [number, number][];
+
+type OnClickType = (latlng: [number, number]) => void;
+
 // Change view components changes the bounds of the map to fit the route.
-const ChangeView = ({ points }) => {
+const ChangeView: React.FC<{ points: CoordList }> = ({ points }) => {
     const map = useMap();
     if (points.length == 0) {
         // Default to the center of London.
@@ -46,17 +50,8 @@ const ChangeView = ({ points }) => {
     return null;
 };
 
-const LocationSelect: React.FC<MapProps> = ({ points }) => {
+const RouteMap: React.FC<MapProps> = ({ points }) => {
     const markerRef = useRef(null);
-
-    // Used to move the marker to the new location when the map is clicked.
-    const onClick = (latlng) => {
-        setStartLocation(latlng);
-        console.log(markerRef.current);
-        const marker = markerRef.current;
-        console.log("setting marker location to " + latlng);
-        marker.setLatLng(latlng);
-    };
 
     return (
         <MapContainer
@@ -89,4 +84,4 @@ const LocationSelect: React.FC<MapProps> = ({ points }) => {
     );
 };
 
-export default LocationSelect;
+export default RouteMap;

@@ -10,6 +10,7 @@ import {
     LayerGroup,
     useMap,
 } from "react-leaflet";
+import L from "leaflet";
 
 const icon = L.icon({
     iconUrl: "images/marker-icon.png",
@@ -33,8 +34,12 @@ interface MapProps {
     setStartLocation: (latlng: [number, number]) => void; // Function to set the start location.
 }
 
+type OnClickType = (latlng: [number, number]) => void;
+
+type Coords = [number, number];
+
 // Change view components changes the bounds of the map to the start location.
-const ChangeView = ({ startLocation }) => {
+const ChangeView: React.FC<Coords> = (startLocation) => {
     const map = useMap();
     console.log("Changing view to " + startLocation);
     map.setView(startLocation, 13);
@@ -42,7 +47,7 @@ const ChangeView = ({ startLocation }) => {
 };
 
 // Clicking on the map will select a new start location for the route.
-const MapClick = ({ onClick }) => {
+const MapClick: React.FC<{ onClick: OnClickType }> = ({ onClick }) => {
     const map = useMap();
     map.addEventListener("click", (e) => {
         const { lat, lng } = e.latlng;
@@ -57,14 +62,16 @@ const LocationSelect: React.FC<MapProps> = ({
     startLocation,
     setStartLocation,
 }) => {
-    const markerRef = useRef(null);
+    const markerRef: React.MutableRefObject<any> = useRef(null);
+
 
     // Used to move the marker to the new location when the map is clicked.
-    const onClick = (latlng) => {
+    const onClick: OnClickType = (latlng: [number, number]) => {
         setStartLocation(latlng);
         console.log(markerRef.current);
         const marker = markerRef.current;
         console.log("setting marker location to " + latlng);
+        // Check if null
         marker.setLatLng(latlng);
     };
 

@@ -31,9 +31,15 @@ func (s *routeGenService) GenRoutes(ctx context.Context, count int, minDistance,
 func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxDistance float64,
 	minCycleLength float64, heuristics map[string]float64, lat, lon, radius float64, eventChan chan string) error {
 
-	// Query the map data microservice at localhost:8081/api/mapdata for the map data
+	// Get the URL of the map data microservice, if it does not exist use localhost
+	mapDataURL := os.Getenv("MAP_DATA_URL")
+	if mapDataURL == "" {
+		mapDataURL = "http://localhost:8081"
+	}
+
+	// Query the map data microservice for the map data
 	client := &http.Client{}
-	request, _ := http.NewRequest(http.MethodGet, "http://localhost:8081/api/mapdata?lat="+fmt.Sprintf("%f", lat)+"&lon="+fmt.Sprintf("%f", lon)+"&radius="+fmt.Sprintf("%f", radius), nil)
+	request, _ := http.NewRequest(http.MethodGet, mapDataURL+"/api/mapdata?lat="+fmt.Sprintf("%f", lat)+"&lon="+fmt.Sprintf("%f", lon)+"&radius="+fmt.Sprintf("%f", radius), nil)
 
 	// Send the request
 	response, err := client.Do(request)

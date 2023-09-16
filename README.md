@@ -1,2 +1,15 @@
 # JogRoute
- A website allowing users to create running routes with a specified length and location.
+
+A website allowing users to create running routes with a specified length and location. Check it out [here](https://jogroute.netlify.app)!
+
+## Overview
+
+This project is built with React and Next.js for the frontend, and it uses a backend built in Go with a microservice architecture. At the time of writing, the project uses two microservices: one for map data and the other for route generation. The map data microservice queries the OpenStreetMap API to find all and streets, paths within a given area (latitude, longitude, and radius). The route generation microservices first receives the map information from the map data microservice, then calculates routes according to the algorithm described in more detail below. Routes are sent to the frontend using server-sent events, meaning that routes can be displayed one at a time as they appear, rather than having to wait for all routes to be generated and giving a response all at once.
+
+The microservice architecture is beneficial in general because it allows for greater modularization and separation between the different components of the backend. It also allows for easier scalability and addition of future components. One possible future addition would be a database microservice that is able to cache frequently accessed map data or store generated routes for the user.
+
+## Algorithm
+
+The goal of this algorithm is, given a location and a distance range, find loops that start and end at the specified location with a length that fits the target range.
+
+The original algorithm used a depth-first search approach to find all possible routes, stopping when the specified distance was reached. However, since the number of possible routes increases exponentially as the distance increases, it becomes infeasible to check all possible routes. In practice, I found that even for routes of ~2 km, generation could take upwards of 1 minute. Although I made many optimizations to the graph such as removing vertices of degree 2 by combining the edges into a single edge, what really helped speed up the performance of the algorithm was to place the partially-generated routes in a priority queue, ordered by a heuristic, such that we only continue building routes that are desirable. That way, the algorithm can stop generating routes after the first n routes are created, knowing that these are the routes best fit the generation criteria, and we can avoid the time computing all possible loops. The current heuristic takes into account things like distance on sidewalks vs. paths. vs roads, street crossings, and the amount of unique streets used in a route (i.e., how many turns are required), which can all be given a weight in the calculation. This is not currently customizable in the frontend but I would like to add this functionality in the near future. Overall, this heuristic based approach was a good decision since it allows users to see fewer routes of higher quality, rather than being inundated with hundreds of options, and it allows generation to finish in less time.

@@ -5,24 +5,24 @@ import (
 )
 
 // Copied from "github.com/bgadrian/data-structures/priorityqueue"
-// Adapted to use ints values, float64 priorities and implement decrease key
+// Adapted by Colin Toft to use ints values, float64 priorities and implement decrease key
 
-//inheritance bypass, the overloading didn't worked :(
-//TODO learn how to do a better composition (Parent calls a func from child)
+// inheritance bypass, the overloading didn't worked :(
+// TODO learn how to do a better composition (Parent calls a func from child)
 type ihCompare func(p, c implicitHeapNode) bool
 
-//implicitHeapNode Elements of the Heap.
-//No much use of heaps just with numbers.
-//We usually use them to store ... stuff.
+// implicitHeapNode Elements of the Heap.
+// No much use of heaps just with numbers.
+// We usually use them to store ... stuff.
 type implicitHeapNode struct {
 	priority float64
 	value    int
 }
 
-//ImplicitHeapMin A dynamic tree (list) of numbers, stored as a Binary tree in a dynamic slice.
-//Used to quickly get the smallest number from a list/queue/priority queue.
+// ImplicitHeapMin A dynamic tree (list) of numbers, stored as a Binary tree in a dynamic slice.
+// Used to quickly get the smallest number from a list/queue/priority queue.
 //
-//It is a base struct for ImplicitHeapMax.
+// It is a base struct for ImplicitHeapMax.
 type ImplicitHeapMin struct {
 	a             []implicitHeapNode
 	n             int       //numbers in the heap
@@ -37,13 +37,13 @@ type ImplicitHeapMin struct {
 	sync.Mutex
 }
 
-//shouldGoUp We keep the min comparison formula in 1 place
-//it is overwritten for Max
+// shouldGoUp We keep the min comparison formula in 1 place
+// it is overwritten for Max
 func minShouldGoUp(p, c implicitHeapNode) bool {
 	return c.priority < p.priority
 }
 
-//NewImplicitHeapMin Builds an empty ImplicitHeapMin
+// NewImplicitHeapMin Builds an empty ImplicitHeapMin
 func NewImplicitHeapMin(autoLockMutex bool) *ImplicitHeapMin {
 	h := &ImplicitHeapMin{
 		compare:       minShouldGoUp,
@@ -54,7 +54,7 @@ func NewImplicitHeapMin(autoLockMutex bool) *ImplicitHeapMin {
 	return h
 }
 
-//Push Insert a new key/value pair in the list.
+// Push Insert a new key/value pair in the list.
 func (h *ImplicitHeapMin) Push(priority float64, value int) {
 	if h.autoLockMutex {
 		h.Lock()
@@ -102,10 +102,10 @@ func (h *ImplicitHeapMin) Push(priority float64, value int) {
 	}
 }
 
-//Peek Find-* returns the first value (root element) O(1).
-//For ImplicitHeapMin returns the value for the smallest key(priority).
-//For ImplicitHeapMax returns the value for the largest key(priority).
-//Does not mutate the list
+// Peek Find-* returns the first value (root element) O(1).
+// For ImplicitHeapMin returns the value for the smallest key(priority).
+// For ImplicitHeapMax returns the value for the largest key(priority).
+// Does not mutate the list
 func (h *ImplicitHeapMin) Peek() (v interface{}, ok bool) {
 	if h.autoLockMutex {
 		h.Lock()
@@ -119,10 +119,10 @@ func (h *ImplicitHeapMin) Peek() (v interface{}, ok bool) {
 	return h.a[0].value, true
 }
 
-//Pop Delete-*, return the first value (root element) O(log(n))
-//For ImplicitHeapMin returns the value for the smallest key(priority).
-//For ImplicitHeapMax returns the value for the largest key(priority).
-//Removes the element from the list
+// Pop Delete-*, return the first value (root element) O(log(n))
+// For ImplicitHeapMin returns the value for the smallest key(priority).
+// For ImplicitHeapMax returns the value for the largest key(priority).
+// Removes the element from the list
 func (h *ImplicitHeapMin) Pop() (v int, ok bool) {
 	if h.autoLockMutex {
 		h.Lock()
@@ -197,7 +197,7 @@ func (h *ImplicitHeapMin) Pop() (v int, ok bool) {
 	return
 }
 
-//Reset Feed all your data to the Garbage Collector.
+// Reset Feed all your data to the Garbage Collector.
 func (h *ImplicitHeapMin) Reset() {
 	if h.autoLockMutex {
 		h.Lock()
@@ -209,7 +209,7 @@ func (h *ImplicitHeapMin) Reset() {
 	h.indexMap = make(map[int]int)
 }
 
-//IsDepleted Check if the list is empty
+// IsDepleted Check if the list is empty
 func (h *ImplicitHeapMin) IsDepleted() bool {
 	if h.autoLockMutex {
 		h.Lock()
@@ -219,7 +219,7 @@ func (h *ImplicitHeapMin) IsDepleted() bool {
 	return h.n == 0
 }
 
-//HasElement Check if the list has at least 1 elment left
+// HasElement Check if the list has at least 1 elment left
 func (h *ImplicitHeapMin) HasElement() bool {
 	if h.autoLockMutex {
 		h.Lock()
@@ -229,7 +229,7 @@ func (h *ImplicitHeapMin) HasElement() bool {
 	return h.n > 0
 }
 
-//Len How many elements are in the heap
+// Len How many elements are in the heap
 func (h *ImplicitHeapMin) Len() int {
 	if h.autoLockMutex {
 		h.Lock()

@@ -20,7 +20,7 @@ type RouteFinder struct {
 	distanceToStart []float64
 	numWorking      int // Number of workers that are currently working
 
-	// Mutexes for the route finder
+	// Mutexes for the route finder (currently parallelism is not being used)
 	loopsMutex sync.Mutex
 	queueMutex sync.Mutex
 }
@@ -96,7 +96,7 @@ func (rf *RouteFinder) Initialize() {
 
 	// queue := []Route{*NewRoute(start)}
 
-	rf.queue, _ = priorityqueue.NewHierarchicalHeap(100, 0, 100000, false)
+	rf.queue, _ = priorityqueue.NewHierarchicalHeap(1000, 0, 100000, false)
 
 	rf.queue.Enqueue(0, 0) // Enqueue route 0 (initial route) with priority 0
 	rf.size = 1
@@ -131,6 +131,7 @@ func (rf *RouteFinder) FindNextRoute(quit chan bool, minDistance, maxDistance, m
 	loopIndex := rf.findLoop(quit, minDistance, maxDistance, maxRepeated, minCycleLength)
 
 	if loopIndex == -1 {
+		fmt.Printf("No route found\n")
 		return Route{}
 	}
 

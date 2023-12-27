@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime/pprof"
 
 	"github.com/ColinToft/JogRoute/internal/util/graph"
 	"github.com/ColinToft/JogRoute/internal/util/mapdata"
@@ -19,14 +20,6 @@ type routeGenService struct{}
 func NewService() Service {
 	return &routeGenService{}
 }
-
-/*
-func (s *routeGenService) GenRoutes(ctx context.Context, count int, minDistance, maxDistance float64,
-	minCycleLength int, heuristics map[string]int, lat, lon, radius float64) ([]Route, error) {
-	// Use the request to generate routes
-	return []Route{}, nil
-}
-*/
 
 func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxDistance float64,
 	minCycleLength float64, heuristics map[string]float64, lat, lon, radius float64, eventChan chan string) error {
@@ -73,6 +66,16 @@ func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxD
 	routeFinder := NewRouteFinder(graph.NewGraph(&rawMapData, lat, lon, heuristics))
 
 	fmt.Println("Finding routes")
+
+	// Enable runtime profiling
+	f, err := os.Create("cpu.prof")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer f.Close()
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
 	routeFinder.Initialize()
 

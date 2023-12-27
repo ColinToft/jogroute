@@ -22,19 +22,23 @@ import (
 	LastWay          int
 } */
 
+// The size of a route tree is the maximum number of routes that can be stored
+// in the tree. The array is allocated at the start, so we bound it to this size
+const RouteTreeSize int = 67108864
+
 type RouteNode struct {
-	Prev             int
-	LastNode         int
-	LastEdge         int
-	Distance         float64
-	RepeatedDistance float64
-	Ways             int
-	LastWay          int
-	EdgeHeuristics   float64
+	Prev             int32
+	LastNode         int32
+	LastEdge         int32
+	Distance         float32
+	RepeatedDistance float32
+	Ways             int16
+	LastWay          int64
+	EdgeHeuristics   float32
 }
 
 type RouteTree struct {
-	Routes []RouteNode
+	Routes [RouteTreeSize]RouteNode
 
 	size     int
 	nextFree int
@@ -52,7 +56,7 @@ type Route struct {
 }
 
 func NewRouteTree(start int, cap int) *RouteTree {
-	r := &RouteTree{Routes: make([]RouteNode, cap)}
+	r := &RouteTree{Routes: [RouteTreeSize]RouteNode{}}
 	r.Routes[0] = NewRoute(start)
 	r.size = 1
 	r.cap = cap
@@ -68,9 +72,9 @@ func (r *RouteTree) Free(index int) {
 func (r *RouteTree) Allocate() int {
 	if r.nextFree == -1 {
 		if r.size == r.cap {
-			newRoutes := make([]RouteNode, r.cap*4)
-			copy(newRoutes, r.Routes)
-			r.Routes = newRoutes
+			// newRoutes := make([]RouteNode, r.cap*4)
+			// copy(newRoutes, r.Routes)
+			// r.Routes = newRoutes
 			r.cap *= 4
 			fmt.Printf("Resized to %v\n", r.cap)
 		}
@@ -123,12 +127,14 @@ func (r *RouteTree) AddNode(previousRouteIndex int, edge graph.Edge, minCycleLen
 			newRoute.RepeatedDistance += edge.Distance
 			break
 		}
-		/*for e := range edge.OverlapsWith {
+
+		for _, e := range edge.OverlapsWith {
 			if e == current.LastEdge {
 				newRoute.RepeatedDistance += edge.Distance
 				break
 			}
-		}*/
+		}
+
 		if current.Prev == -1 || newRoute.Distance-current.Distance > minCycleLength {
 			break
 		}
@@ -143,7 +149,7 @@ func (r *RouteTree) AddNode(previousRouteIndex int, edge graph.Edge, minCycleLen
 }
 
 func (r *RouteNode) Heuristic() int {
-	return r.Ways*600 - int(r.Distance) - int(r.EdgeHeuristics)
+	return r.Ways*500 - int(r.Distance) - int(r.EdgeHeuristics)
 }
 
 func (r *RouteTree) routeFromIndex(g *graph.Graph, endNode int) Route {
@@ -151,8 +157,10 @@ func (r *RouteTree) routeFromIndex(g *graph.Graph, endNode int) Route {
 	nodeIDs := []int{}
 	current := &r.Routes[endNode]
 	distance := current.Distance
+	edgeIDs := []int{}
 	for {
 		nodeIDs = append(nodeIDs, current.LastNode)
+		edgeIDs = append(edgeIDs, current.LastEdge)
 		if current.Prev == -1 {
 			break
 		}
@@ -160,7 +168,9 @@ func (r *RouteTree) routeFromIndex(g *graph.Graph, endNode int) Route {
 	}
 
 	fmt.Printf("Before expansion the route is %v\n", nodeIDs)
+	fmt.Printf("The edges are %v\n", edgeIDs)
 	nodeIDs = g.ExpandRoute(nodeIDs)
+	fmt.Printf("After expansion the route is %v\n", nodeIDs)
 	nodes := make([][]float64, len(nodeIDs))
 
 	// Convert the route to a list of nodes

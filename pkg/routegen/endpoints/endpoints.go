@@ -43,7 +43,7 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 		heuristics["footway"] = 0.5
 		heuristics["crossing"] = -1000
 		heuristics["traffic_signals"] = -1000
-		heuristics["path"] = 5
+		heuristics["path"] = -5
 		heuristics["service"] = -5
 
 		fmt.Println(r.URL)
@@ -70,7 +70,7 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 
 		count := 10
 		distanceRange := 20.0
-		minCycleLength := distance - 250
+		minCycleLength := distance - 500
 		minDistance := distance - distanceRange
 		maxDistance := distance + distanceRange
 

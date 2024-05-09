@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/ColinToft/JogRoute/internal/util/graph"
-	"github.com/bgadrian/data-structures/priorityqueue"
+	"github.com/ColinToft/JogRoute/internal/util/heap"
 )
 
 type RouteFinder struct {
@@ -13,16 +13,17 @@ type RouteFinder struct {
 	graph *graph.Graph
 
 	// Variables for in progress calculation by the goroutines
-	loops           []int
-	loopCount       int
-	queue           *priorityqueue.HierarchicalHeap
+
+	routes          []Route
+	routeCount      int
+	queue           *heap.HierarchicalHeap
 	size            int
 	distanceToStart []float64
 	numWorking      int // Number of workers that are currently working
 
 	// Mutexes for the route finder (currently parallelism is not being used)
-	loopsMutex sync.Mutex
-	queueMutex sync.Mutex
+	routesMutex sync.Mutex
+	queueMutex  sync.Mutex
 }
 
 // NewRouteFinder creates a new route finder.
@@ -30,7 +31,7 @@ func NewRouteFinder(graph *graph.Graph) *RouteFinder {
 	return &RouteFinder{graph: graph}
 }
 
-func (rf *RouteFinder) findLoop(quit chan bool, minDistance, maxDistance, maxRepeated, minCycleLength float64) int {
+func (rf *RouteFinder) findRoute(quit chan bool, minDistance, maxDistance, maxRepeated, minCycleLength float64) int {
 	for rf.size > 0 {
 		select {
 		case <-quit:
@@ -39,10 +40,9 @@ func (rf *RouteFinder) findLoop(quit chan bool, minDistance, maxDistance, maxRep
 		default:
 
 			// Pop the last element from the stack
-			temp, _ := rf.queue.Dequeue()
+			routeIndex := rf.queue.Dequeue()
 			rf.size--
 
-			routeIndex := temp.(int)
 			route := &rf.tree.Routes[routeIndex]
 
 			// Get the last node from the route
@@ -55,7 +55,7 @@ func (rf *RouteFinder) findLoop(quit chan bool, minDistance, maxDistance, maxRep
 				continue
 			}
 
-			// If the last node is the start node and the route is long enough, add it to the list of rf.loops
+			// If the last node is the start node and the route is long enough, we have found a loop
 			if lastNode == rf.graph.StartNode && route.Distance >= minDistance && route.Distance <= maxDistance {
 				fmt.Printf("The added route has %d ways\n", route.Ways)
 				fmt.Printf("The edge heuristics are %f\n", route.EdgeHeuristics)
@@ -72,13 +72,9 @@ func (rf *RouteFinder) findLoop(quit chan bool, minDistance, maxDistance, maxRep
 				if route.Prev == -1 || neighbourEdge.To != rf.tree.Routes[route.Prev].LastNode {
 					newRoute := rf.tree.AddNode(routeIndex, neighbourEdge, minCycleLength)
 
-					rf.queue.Enqueue(newRoute, rf.tree.Routes[newRoute].Heuristic())
+					rf.queue.Enqueue(newRoute, rf.tree.Routes[newRoute].Heuristic(minDistance))
 					rf.size++
-				} /* else {
-					if route.Prev != -1 {
-						fmt.Printf("The edge from %d to %d is a repeat of the edge from %d to %d\n", lastNode, neighbourEdge.To, rf.tree.Routes[route.Prev].LastNode, lastNode)
-					}
-				} */
+				}
 			}
 		}
 	}
@@ -87,16 +83,14 @@ func (rf *RouteFinder) findLoop(quit chan bool, minDistance, maxDistance, maxRep
 }
 
 func (rf *RouteFinder) Initialize() {
-	// Find all loops that start and end at node start.
-	// A loop is a closed walk through the graph.
 	rf.tree = NewRouteTree(rf.graph.StartNode, 67108864)
 
-	rf.loops = []int{} // List of indices of loops in the routes list
-	rf.loopCount = 0
+	rf.routeCount = 0
+	rf.routes = make([]Route, 0)
 
 	// queue := []Route{*NewRoute(start)}
 
-	rf.queue, _ = priorityqueue.NewHierarchicalHeap(1000, 0, 100000, false)
+	rf.queue, _ = heap.NewHierarchicalHeap(1000, -100000, 100000)
 
 	rf.queue.Enqueue(0, 0) // Enqueue route 0 (initial route) with priority 0
 	rf.size = 1
@@ -106,34 +100,44 @@ func (rf *RouteFinder) Initialize() {
 }
 
 func (rf *RouteFinder) FindAllRoutes(quit chan bool, minDistance, maxDistance, maxRepeated, minCycleLength float64, routesCap int) []Route {
+
 out:
-	for rf.size > 0 && rf.loopCount < routesCap {
+	for rf.size > 0 && rf.routeCount < routesCap {
 		select {
 		case <-quit:
 			break out
 		default:
-			loopIndex := rf.findLoop(quit, minDistance, maxDistance, maxRepeated, minCycleLength)
-
-			rf.loops = append(rf.loops, loopIndex)
-			rf.loopCount++
-			// TODO check it is not reverse of another route
+			rf.FindNextRoute(quit, minDistance, maxDistance, maxRepeated, minCycleLength)
 		}
 	}
 
-	routes := make([]Route, len(rf.loops))
-	for i, routeIndex := range rf.loops {
-		routes[i] = rf.tree.routeFromIndex(rf.graph, routeIndex)
-	}
-	return routes
+	return rf.routes
 }
 
 func (rf *RouteFinder) FindNextRoute(quit chan bool, minDistance, maxDistance, maxRepeated, minCycleLength float64) Route {
-	loopIndex := rf.findLoop(quit, minDistance, maxDistance, maxRepeated, minCycleLength)
+out:
+	for rf.size > 0 {
+		routeIndex := rf.findRoute(quit, minDistance, maxDistance, maxRepeated, minCycleLength)
 
-	if loopIndex == -1 {
-		fmt.Printf("No route found\n")
-		return Route{}
+		if routeIndex == -1 {
+			return Route{} // No route found
+		}
+
+		route := rf.tree.routeFromIndex(rf.graph, routeIndex)
+
+		// Check our new route is not the reverse of another route
+		for _, r := range rf.routes {
+			if r.IsIdentical(route) {
+				continue out
+			}
+		}
+
+		rf.routeCount++
+		// Add the route to the list of routes
+		rf.routes = append(rf.routes, route)
+
+		return route
 	}
 
-	return rf.tree.routeFromIndex(rf.graph, loopIndex)
+	return Route{} // No route found
 }

@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -19,6 +20,15 @@ func NewEndpointSet(svc routegen.Service) Set {
 	return Set{
 		GenerateEndpoint: MakeGenerateEndpoint(svc),
 	}
+}
+
+func WriteServerSentEvent(w http.ResponseWriter, message string) {
+	_, err := w.Write([]byte(fmt.Sprintf("data: %s\n\n", message)))
+	if err != nil {
+		logger.Log("Error writing SSE event data", err)
+		return
+	}
+	w.(http.Flusher).Flush()
 }
 
 // Test server-sent event functionality by making a test server-sent event endpoint that returns the generated routes.j
@@ -41,9 +51,9 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 		heuristics := make(map[string]float64)
 		heuristics["sidewalk"] = 1
 		heuristics["footway"] = 0.5
-		heuristics["crossing"] = -1000
-		heuristics["traffic_signals"] = -1000
-		heuristics["path"] = -5
+		heuristics["crossing"] = -100
+		heuristics["traffic_signals"] = -100
+		heuristics["path"] = 5
 		heuristics["service"] = -5
 
 		fmt.Println(r.URL)
@@ -69,8 +79,8 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 		}
 
 		count := 10
-		distanceRange := 20.0
-		minCycleLength := distance - 500
+		distanceRange := 50.0
+		minCycleLength := math.Min(10000, distance-500)
 		minDistance := distance - distanceRange
 		maxDistance := distance + distanceRange
 
@@ -91,54 +101,29 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 				if event == "done" {
 					break out
 				}
-				_, err := w.Write([]byte(fmt.Sprintf("data: %s\n\n", event)))
-				if err != nil {
-					logger.Log("Error writing SSE event data", err)
+				if event == "error" {
+					WriteServerSentEvent(w, "Error")
 					break out
 				}
-				w.(http.Flusher).Flush()
+
+				WriteServerSentEvent(w, event)
 			case <-r.Context().Done():
 				break out
 			case <-timeout:
 				// Quit the goroutine
 				quitChannel <- true
 
-				_, err := w.Write([]byte("data: Timeout\n\n"))
-				if err != nil {
-					logger.Log("Error writing SSE event data", err)
-					break out
-				}
-				w.(http.Flusher).Flush()
+				WriteServerSentEvent(w, "Timeout")
 				break out
 			}
 		}
 
 		fmt.Println("Connection closed")
 		// Send a message to indicate that the connection has been closed
-		_, err = w.Write([]byte("data: Connection closed\n\n"))
-		if err != nil {
-			logger.Log("Error writing SSE event data", err)
-			return
-		}
+		WriteServerSentEvent(w, "Connection closed")
 		w.(http.Flusher).Flush()
 	}
 }
-
-/*
-func (s *Set) GenerateRoutes(ctx context.Context, count int, minDistance, maxDistance float64,
-	minCycleLength int, heuristics map[string]int, lat, lon, radius float64) ([]routegen.Route, error) {
-	req := GenerationRequest{count, minDistance, maxDistance, minCycleLength, heuristics, lat, lon, radius}
-	resp, err := s.GenerateEndpoint(ctx, req)
-	if err != nil {
-		return []routegen.Route{}, err
-	}
-	generated := resp.(GenerationResponse)
-	if generated.Err != "" {
-		return []routegen.Route{}, errors.New(generated.Err)
-	}
-	return generated.Routes, nil
-}
-*/
 
 var logger log.Logger
 

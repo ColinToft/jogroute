@@ -68,19 +68,35 @@ func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxD
 	fmt.Println("Finding routes")
 
 	// Enable runtime profiling
-	f, err := os.Create("cpu.prof")
-	if err != nil {
-		fmt.Println(err)
+	profile := false
+	if profile {
+		f, err := os.Create("cpu.prof")
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		defer f.Close()
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	if !routeFinder.graph.IsValid() {
+		fmt.Println("Graph is invalid")
+		eventChan <- "error"
 		return err
 	}
-	defer f.Close()
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
 
 	routeFinder.Initialize()
 
 	for i := 0; i < count; i++ {
-		route := routeFinder.FindNextRoute(quit, minDistance, maxDistance, 0, minCycleLength)
+		maxRepeated := 0.0 // Could make this a paramater eventually
+		route := routeFinder.FindNextRoute(quit, minDistance, maxDistance, maxRepeated, minCycleLength)
+
+		// If route is nil or empty, we are done
+		if route.Nodes == nil || len(route.Nodes) == 0 {
+			fmt.Println("No more routes can be found")
+			break
+		}
 
 		routeJSON, _ := json.Marshal(route)
 		eventChan <- string(routeJSON)

@@ -27,14 +27,14 @@ import (
 const RouteTreeSize int = 67108864
 
 type RouteNode struct {
-	Prev             int32
-	LastNode         int32
-	LastEdge         int32
-	Distance         float32
-	RepeatedDistance float32
-	Ways             int16
-	LastWay          int64
-	EdgeHeuristics   float32
+	Prev             int
+	LastNode         int
+	LastEdge         int
+	Distance         float64
+	RepeatedDistance float64
+	Ways             int
+	LastWay          int
+	EdgeHeuristics   float64
 }
 
 type RouteTree struct {
@@ -55,6 +55,31 @@ type Route struct {
 	Distance float64     `json:"distance"`
 }
 
+// Returns true if the route is identical to the other route
+// For our purposes, this means that the nodes are the same (but not necessarily in the same order)
+func (r *Route) IsIdentical(other Route) bool {
+	if len(r.Nodes) != len(other.Nodes) {
+		return false
+	}
+
+	// Check if each node in the route is in the other route
+	for _, node := range r.Nodes {
+		found := false
+		for _, otherNode := range other.Nodes {
+			if node[0] == otherNode[0] && node[1] == otherNode[1] {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+
+	return true
+}
+
 func NewRouteTree(start int, cap int) *RouteTree {
 	r := &RouteTree{Routes: [RouteTreeSize]RouteNode{}}
 	r.Routes[0] = NewRoute(start)
@@ -72,6 +97,10 @@ func (r *RouteTree) Free(index int) {
 func (r *RouteTree) Allocate() int {
 	if r.nextFree == -1 {
 		if r.size == r.cap {
+			// Commenting this out causes the program to crash
+			// Unfortunately since hosting costs more based on the amount of memory used,
+			// better to just crash for the time being
+
 			// newRoutes := make([]RouteNode, r.cap*4)
 			// copy(newRoutes, r.Routes)
 			// r.Routes = newRoutes
@@ -116,7 +145,7 @@ func max(a, b int) int {
 func (r *RouteTree) AddNode(previousRouteIndex int, edge graph.Edge, minCycleLength float64) int {
 	newRouteIndex := r.Allocate()
 
-	prev := &r.Routes[previousRouteIndex]
+	prev := r.Routes[previousRouteIndex]
 	r.Routes[newRouteIndex] = RouteNode{Prev: previousRouteIndex, LastNode: edge.To, LastEdge: edge.Id, Distance: prev.Distance + edge.Distance, RepeatedDistance: prev.RepeatedDistance, Ways: prev.Ways, LastWay: edge.Way, EdgeHeuristics: prev.EdgeHeuristics + edge.Heuristic}
 	newRoute := &r.Routes[newRouteIndex]
 
@@ -138,7 +167,7 @@ func (r *RouteTree) AddNode(previousRouteIndex int, edge graph.Edge, minCycleLen
 		if current.Prev == -1 || newRoute.Distance-current.Distance > minCycleLength {
 			break
 		}
-		current = &r.Routes[current.Prev]
+		current = r.Routes[current.Prev]
 	}
 
 	if edge.Way != prev.LastWay {
@@ -148,8 +177,17 @@ func (r *RouteTree) AddNode(previousRouteIndex int, edge graph.Edge, minCycleLen
 	return newRouteIndex
 }
 
-func (r *RouteNode) Heuristic() int {
-	return r.Ways*500 - int(r.Distance) - int(r.EdgeHeuristics)
+func (r *RouteNode) Heuristic(minDistance float64) int {
+	// These parameters are hand-tuned for now but I would like to make them parameters eventually
+	heuristicScale := 50.0 / minDistance
+	// waysScale := 0.05
+	waysScale := 700.0
+	distanceScale := 1.5
+
+	// Also tried the following but seems to lead to generally worse results
+	// return int(heuristicScale * (-waysScale*(r.Distance/float64(r.Ways)) - distanceScale*r.Distance/minDistance - r.EdgeHeuristics/minDistance))
+
+	return int(heuristicScale * (waysScale*float64(r.Ways) - distanceScale*r.Distance - r.EdgeHeuristics))
 }
 
 func (r *RouteTree) routeFromIndex(g *graph.Graph, endNode int) Route {

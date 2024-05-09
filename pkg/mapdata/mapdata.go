@@ -22,14 +22,6 @@ func NewService() Service {
 	return &mapDataService{}
 }
 
-/*
-func (s *mapDataService) GenRoutes(ctx context.Context, count int, minDistance, maxDistance float64,
-	minCycleLength int, heuristics map[string]int, lat, lon, radius float64) ([]Route, error) {
-	// Use the request to generate routes
-	return []Route{}, nil
-}
-*/
-
 func (s *mapDataService) GetMapData(ctx context.Context, lat, lon, radius float64) (mapdata.MapData, error) {
 	// Load the map data from OpenStreetMap
 

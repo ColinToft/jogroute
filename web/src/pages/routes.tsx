@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { CSSTransition } from "react-transition-group";
 import { Inter } from "next/font/google";
@@ -67,6 +67,10 @@ const RoutesPage: React.FC = () => {
 
     const toast = useToast();
 
+    const numRoutesRef = useRef(0);
+
+    numRoutesRef.current = routes.length;
+
     const distanceFormat = (distance: number) => {
         if (distance < 1) {
             return distance.toFixed(0) + " m";
@@ -87,7 +91,6 @@ const RoutesPage: React.FC = () => {
                 ? "http://localhost:8080"
                 : process.env.NEXT_PUBLIC_ROUTEGEN_URL;
 
-        
         const eventSource = new EventSource(
             `${URL}/api/generate?lat=${lat}&lon=${lon}&distance=${distance}`
         );
@@ -97,6 +100,19 @@ const RoutesPage: React.FC = () => {
             if (event.data === "Connection closed") {
                 eventSource.close();
                 console.log("Connection closed.");
+
+                if (numRoutesRef.current <= 0) {
+                    // This actually doesn't work.
+                    // The toast always shows up, even when the routes are generated.
+                    //
+                    toast({
+                        title: "Error",
+                        description: "Unable to generate routes.",
+                        status: "error",
+                        duration: 9000,
+                        isClosable: true,
+                    });
+                }
                 return;
             }
             if (event.data === "Timeout") {
@@ -111,8 +127,35 @@ const RoutesPage: React.FC = () => {
                 });
                 return;
             }
+            if (event.data === "Error") {
+                eventSource.close();
+                console.log("Error occurred.");
+                toast({
+                    title: "Error",
+                    description: "Unable to generate routes.",
+                    status: "error",
+                    duration: 9000,
+                    isClosable: true,
+                });
+                return;
+            }
 
             const data = JSON.parse(event.data) as Route;
+
+            // Make sure the route is not empty.
+            if (!data.route || data.route.length <= 0) {
+                if (routes.length <= 0) {
+                    toast({
+                        title: "Error",
+                        description: "Unable to generate routes.",
+                        status: "error",
+                        duration: 9000,
+                        isClosable: true,
+                    });
+                }
+                return;
+            }
+
             setRoutes((routes) => [...routes, data]);
         };
 
@@ -126,12 +169,12 @@ const RoutesPage: React.FC = () => {
         <div className={inter.className}>
             <Head>
                 <title>{metadata.title}</title>
-                <meta name="description" content={metadata.description} />
+                <meta name='description' content={metadata.description} />
             </Head>
-            <Heading p="10px" bgGradient="linear(to-r, #20ffff, #4060ff)">
+            <Heading p='10px' bgGradient='linear(to-r, #20ffff, #4060ff)'>
                 JogRoute
             </Heading>
-            <SimpleGrid p="10px" columns={2} spacing={10}>
+            <SimpleGrid p='10px' columns={2} spacing={10}>
                 <MapWithNoSSR
                     points={
                         routes.length > 0 ? routes[selectedRoute].route : []
@@ -139,9 +182,9 @@ const RoutesPage: React.FC = () => {
                 />
                 <GridItem>
                     {routes.length <= 0 ? (
-                        <Center h="100%">
+                        <Center h='100%'>
                             <div>
-                                <Heading size="md">
+                                <Heading size='md'>
                                     Generating routes...
                                 </Heading>
                                 <br />
@@ -152,12 +195,12 @@ const RoutesPage: React.FC = () => {
                         </Center>
                     ) : (
                         <Box
-                            mb="10px"
-                            overflow="hidden"
-                            overflowY="auto"
-                            maxHeight="80vh"
+                            mb='10px'
+                            overflow='hidden'
+                            overflowY='auto'
+                            maxHeight='80vh'
                         >
-                            <SimpleGrid columns={2} spacing={6} mr="10px">
+                            <SimpleGrid columns={2} spacing={6} mr='10px'>
                                 {routes.map((route, index) => (
                                     // Transition to have the cards slide in from the bottom.
                                     <CSSTransition
@@ -167,7 +210,7 @@ const RoutesPage: React.FC = () => {
                                                 "animate__animated animate__slideInRight",
                                         }}
                                         timeout={1000}
-                                        className="animate__animated animate__slideInRight"
+                                        className='animate__animated animate__slideInRight'
                                     >
                                         <Card
                                             onClick={() =>
@@ -180,7 +223,7 @@ const RoutesPage: React.FC = () => {
                                                     ? "gray.100"
                                                     : undefined
                                             }
-                                            cursor="pointer"
+                                            cursor='pointer'
                                             onMouseEnter={() =>
                                                 setHoveredRoute(index)
                                             }
@@ -188,13 +231,13 @@ const RoutesPage: React.FC = () => {
                                                 setHoveredRoute(-1)
                                             }
                                         >
-                                            <Grid templateColumns="repeat(2, 1fr)">
+                                            <Grid templateColumns='repeat(2, 1fr)'>
                                                 <RoutePreviewWithNoSSR
                                                     points={route.route}
                                                 />
                                                 <Stack>
                                                     <CardBody>
-                                                        <Heading size="md">
+                                                        <Heading size='md'>
                                                             Route {index + 1}
                                                         </Heading>
                                                         <Text>
@@ -214,12 +257,12 @@ const RoutesPage: React.FC = () => {
                 </GridItem>
             </SimpleGrid>
 
-            <Link href="/">
+            <Link href='/'>
                 <Button
-                    position="fixed"
-                    bottom="10px"
-                    right="10px"
-                    colorScheme="blue"
+                    position='fixed'
+                    bottom='10px'
+                    right='10px'
+                    colorScheme='blue'
                 >
                     Back
                 </Button>

@@ -61,6 +61,8 @@ const RoutesPage: React.FC = () => {
     // Load routes from the server.
     const [routes, setRoutes] = useState<Route[]>([]);
 
+    const [hasErrored, setHasErrored] = useState<boolean>(false);
+
     const [loadingMessage, setLoadingMessage] = useState<string>("Loading");
 
     const [selectedRoute, setSelectedRoute] = useState<number>(0);
@@ -105,9 +107,7 @@ const RoutesPage: React.FC = () => {
                 console.log("Connection closed.");
 
                 if (numRoutesRef.current <= 0) {
-                    // This actually doesn't work.
-                    // The toast always shows up, even when the routes are generated.
-                    //
+                    setHasErrored(true);
                     toast({
                         title: "Error",
                         description: "Unable to generate routes.",
@@ -121,9 +121,13 @@ const RoutesPage: React.FC = () => {
             if (event.data === "Timeout") {
                 eventSource.close();
                 console.log("Connection timed out.");
+                setHasErrored(numRoutesRef.current > 0);
                 toast({
                     title: "Error",
-                    description: "The server took too long to respond.",
+                    description:
+                        numRoutesRef.current > 0
+                            ? "The generation timed out."
+                            : "The server took too long to respond.",
                     status: "error",
                     duration: 9000,
                     isClosable: true,
@@ -141,6 +145,7 @@ const RoutesPage: React.FC = () => {
             if (event.data === "Error") {
                 eventSource.close();
                 console.log("Error occurred.");
+                setHasErrored(true);
                 toast({
                     title: "Error",
                     description: "Unable to generate routes.",
@@ -155,7 +160,7 @@ const RoutesPage: React.FC = () => {
 
             // Make sure the route is not empty.
             if (!data.route || data.route.length <= 0) {
-                if (routes.length <= 0) {
+                if (numRoutesRef.current <= 0) {
                     toast({
                         title: "Error",
                         description: "Unable to generate routes.",
@@ -212,11 +217,17 @@ const RoutesPage: React.FC = () => {
                     {routes.length <= 0 ? (
                         <Center height='100%' width='100%'>
                             <div>
-                                <Heading size='md'>{loadingMessage}...</Heading>
+                                <Heading size='md'>
+                                    {hasErrored
+                                        ? "An error has occurred."
+                                        : loadingMessage + "..."}
+                                </Heading>
                                 <br />
-                                <Center>
-                                    <CircularProgress isIndeterminate />
-                                </Center>
+                                {!hasErrored && (
+                                    <Center>
+                                        <CircularProgress isIndeterminate />
+                                    </Center>
+                                )}
                             </div>
                         </Center>
                     ) : (

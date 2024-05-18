@@ -24,9 +24,6 @@ const LocationSelectNoSSR = dynamic(
     }
 );
 
-// TODO:
-// Fix error with extremely small distances.
-
 const inter = Inter({ subsets: ["latin"] });
 
 const metadata = {
@@ -45,15 +42,22 @@ const HomePage: React.FC = () => {
     const isError = distance < 0 || distance > 20;
 
     return (
-        <div className={inter.className}>
+        <div
+            className={inter.className}
+            style={{
+                height: "100vh",
+                display: "flex",
+                flexDirection: "column",
+            }}
+        >
             <Head>
                 <title>{metadata.title}</title>
-                <meta name="description" content={metadata.description} />
+                <meta name='description' content={metadata.description} />
             </Head>
-            <Heading p="10px" bgGradient="linear(to-r, #20ffff, #4060ff)">
+            <Heading p='10px' bgGradient='linear(to-r, #20ffff, #4060ff)'>
                 JogRoute
             </Heading>
-            <SimpleGrid p="10px" columns={2} spacing={10}>
+            <SimpleGrid p='10px' columns={2} spacing={10} flex='1'>
                 <LocationSelectNoSSR
                     startLocation={startLocation}
                     setStartLocation={setStartLocation}
@@ -83,7 +87,7 @@ const HomePage: React.FC = () => {
                                 startLocation[1]
                             }&distance=${distance * 1000}`}
                         >
-                            <Button colorScheme="blue" type="submit">
+                            <Button colorScheme='blue' type='submit'>
                                 Generate
                             </Button>
                         </Link>

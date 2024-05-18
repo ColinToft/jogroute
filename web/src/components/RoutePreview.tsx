@@ -30,13 +30,13 @@ const metadata = {
 };
 
 interface MapProps {
-    points : [number, number][]; // The points on the route
+    points: [number, number][]; // The points on the route
 }
 
 // Change view components changes the bounds of the map to fit the route.
 const ChangeView: React.FC<MapProps> = ({ points }) => {
     const map = useMap();
-    map.fitBounds(points);
+    map.fitBounds(points, { padding: [5, 5] });
     return null;
 };
 
@@ -53,11 +53,12 @@ const LocationSelect: React.FC<MapProps> = ({ points }) => {
             closePopupOnClick={false}
             dragging={false}
             trackResize={false}
+            zoomSnap={0}
             className={styles.mapContainerSmall}
         >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
             />
             <LayerGroup>
                 <Polyline pathOptions={{ color: "blue" }} positions={points} />

@@ -49,16 +49,13 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 		// Temp: create default heuristics for the request
 		// Heuristics (higher is better)
 		heuristics := make(map[string]float64)
-		heuristics["sidewalk"] = 1
-		heuristics["footway"] = 0.5
+		heuristics["sidewalk"] = 0.5
+		heuristics["footway"] = 1
 		heuristics["crossing"] = -100
 		heuristics["traffic_signals"] = -100
 		heuristics["path"] = 5
 		heuristics["service"] = -5
 
-		fmt.Println(r.URL)
-		fmt.Println(r.URL.Query())
-		fmt.Println(r.URL.Query().Get("distance"))
 		// Read the request parameters from the URL
 		distance, err := strconv.ParseFloat(r.URL.Query().Get("distance"), 64)
 		if err != nil {
@@ -80,7 +77,7 @@ func MakeGenerateEndpoint(svc routegen.Service) http.HandlerFunc {
 
 		count := 10
 		distanceRange := 50.0
-		minCycleLength := math.Min(10000, distance-500)
+		minCycleLength := math.Min(13000, distance-500)
 		minDistance := distance - distanceRange
 		maxDistance := distance + distanceRange
 

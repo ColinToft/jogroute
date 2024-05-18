@@ -32,8 +32,14 @@ type Node struct {
 	Lon float64 `json:"lon"`
 }
 
+type PointerToEdges struct {
+	Edge1 *Edge
+	Edge2 *Edge
+}
+
 type Graph struct {
 	AdjacencyList      [][]Edge
+	Edges              []PointerToEdges
 	Nodes              []Node
 	expansionEdgeBegin int
 	expansionEdges     [][]ExpansionEdge
@@ -58,6 +64,21 @@ func haversine(a, b Node) float64 {
 	return EARTH_RADIUS * haversine_c
 }
 
+func isElementValid(element mapdata.MapDataElement) bool {
+	return element.Type == "way" &&
+		element.Tags.Access != "private" &&
+		element.Tags.Building != "yes" &&
+		element.Tags.Highway != "service"
+}
+
+func isElementWalkable(element mapdata.MapDataElement) bool {
+	return isElementValid(element) &&
+		element.Tags.Highway != "primary" &&
+		element.Tags.Highway != "secondary" &&
+		element.Tags.Highway != "tertiary" &&
+		element.Tags.Highway != "cycleway"
+}
+
 // Convert MapData to a Graph
 func NewGraph(data *mapdata.MapData, startLat, startLon float64, heuristics map[string]float64) *Graph {
 	g := &Graph{AdjacencyList: make([][]Edge, len(data.Nodes)), Nodes: make([]Node, 0)}
@@ -76,8 +97,6 @@ func NewGraph(data *mapdata.MapData, startLat, startLon float64, heuristics map[
 
 	g.AdjacencyList = make([][]Edge, id)
 
-	g.expansionEdgeBegin = id
-
 	// Add edges
 	// We use "zones" to divide up the graph into smaller parts, so we can check for edges that are close and parallel.
 	// This is because we want to identify pairs of sidewalks and roads that are parallel.
@@ -85,10 +104,14 @@ func NewGraph(data *mapdata.MapData, startLat, startLon float64, heuristics map[
 	zoneWidth := 0.001
 	zoneMap := NewZoneMap(zoneWidth)
 
+	wayBuilder := NewWayBuilder()
+
+	unwalkableEdgeIds := make(map[int]bool)
+
 	edgeId := 0
 	for _, element := range data.Elements {
-		// If it is a way that is not of type "primary", "secondary" or "tertiary", add it to the graph
-		if element.Type == "way" && element.Tags.Highway != "primary" && element.Tags.Highway != "secondary" && element.Tags.Highway != "tertiary" && element.Tags.Access != "private" && element.Tags.Building != "yes" && element.Tags.Highway != "service" {
+		// Make sure the element is a road or sidewalk, and not a private road, building, etc.
+		if isElementValid(element) {
 			for i := 0; i < len(element.Nodes)-1; i++ {
 				assignedId1 := assignedIds[element.Nodes[i]]
 				assignedId2 := assignedIds[element.Nodes[i+1]]
@@ -156,11 +179,49 @@ func NewGraph(data *mapdata.MapData, startLat, startLon float64, heuristics map[
 					overlapsWith[i] = overlap.Id
 				}
 
-				g.AddEdge(edgeId, assignedId1, assignedId2, element.ID, distance, heuristic, overlapsWith)
+				if element.Tags.Name != "" {
+					wayBuilder.AddStreetName(edgeId, element.Tags.Name)
+				}
+
+				// Mark if the edge is unwalkable (this includes things like major roads)
+				// We need to keep the unwalkable edges in during the initial processing,
+				// for example associating sidewalks with their respective roads.
+				// They are removed after this processing is complete.
+				if !isElementWalkable(element) {
+					unwalkableEdgeIds[edgeId] = true
+				}
+
+				wayId := element.ID
+				g.AddEdge(edgeId, assignedId1, assignedId2, wayId, distance, heuristic, overlapsWith)
 				edgeId++
 			}
 		}
+	}
 
+	g.expansionEdgeBegin = edgeId
+
+	// Build the edge map (needed for wayBuilder)
+	g.BuildEdgeMap()
+
+	// Add names to unnamed edges
+	wayBuilder.TryAddingNames(g)
+
+	// Reassign way IDs to coallesce edges with the same street name
+	wayBuilder.ReassignWayIDs(g)
+
+	// Remove unwalkable edges
+	for i, edges := range g.AdjacencyList {
+		outputIndex := 0
+		for _, edge := range edges {
+			if edge.Way == 1025389579 {
+				fmt.Printf("Edge %d shouldn't be here\n", edge.Id)
+			}
+			if !unwalkableEdgeIds[edge.Id] {
+				g.AdjacencyList[i][outputIndex] = edge
+				outputIndex++
+			}
+		}
+		g.AdjacencyList[i] = g.AdjacencyList[i][:outputIndex]
 	}
 
 	// Find the start node
@@ -204,12 +265,41 @@ func (g *Graph) AddEdge(id, from, to, way int, distance, heuristic float64, over
 	g.AdjacencyList[to] = append(g.AdjacencyList[to], Edge{from, id, overlapsWith, way, distance, heuristic})
 }
 
+func (g *Graph) BuildEdgeMap() {
+	g.Edges = make([]PointerToEdges, g.expansionEdgeBegin)
+	for from, edges := range g.AdjacencyList {
+		for i, edge := range edges {
+			if from <= edge.To { // Only add the edge once
+				edge1 := &g.AdjacencyList[from][i]
+
+				// Find the edge in the other direction
+				var edge2 *Edge
+				for j, otherEdge := range g.AdjacencyList[edge.To] {
+					if otherEdge.To == from {
+						edge2 = &g.AdjacencyList[edge.To][j]
+						break
+					}
+				}
+
+				if edge2 == nil {
+					fmt.Printf("Error: could not find edge in the other direction when building edge map\n")
+				}
+
+				g.Edges[edge.Id] = PointerToEdges{edge1, edge2}
+			}
+		}
+	}
+}
+
 // RemoveEdge removes an edge from the graph.
 func (g *Graph) RemoveEdge(from, to int) {
+	edgeId := -1
+
 	// Remove the edge from the from node
 	for i, edge := range g.AdjacencyList[from] {
 		if edge.To == to {
 			g.AdjacencyList[from] = append(g.AdjacencyList[from][:i], g.AdjacencyList[from][i+1:]...)
+			edgeId = edge.Id
 			break
 		}
 	}
@@ -221,6 +311,14 @@ func (g *Graph) RemoveEdge(from, to int) {
 			break
 		}
 	}
+
+	// Remove the edge from the edges list
+	// Expansion edges are not stored in the edges list (IDs larger than g.Edges)
+	if edgeId == -1 || edgeId >= len(g.Edges) {
+		return
+	}
+
+	g.Edges[edgeId] = PointerToEdges{nil, nil}
 }
 
 func Contains(a []int, x int) bool {

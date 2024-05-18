@@ -24,11 +24,20 @@ func NewService() Service {
 func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxDistance float64,
 	minCycleLength float64, heuristics map[string]float64, lat, lon, radius float64, eventChan chan string) error {
 
+	distanceBound := 22000.0
+	if maxDistance > distanceBound {
+		fmt.Println("Max distance is too large")
+		eventChan <- "error"
+		return nil
+	}
+
 	// Get the URL of the map data microservice, if it does not exist use localhost
 	mapDataURL := os.Getenv("MAP_DATA_URL")
 	if mapDataURL == "" {
 		mapDataURL = "http://localhost:8081"
 	}
+
+	eventChan <- "Loading map data"
 
 	// Query the map data microservice for the map data
 	client := &http.Client{}
@@ -51,6 +60,8 @@ func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxD
 
 	defer response.Body.Close()
 
+	eventChan <- "Processing map data"
+
 	// Read the response body
 	body, _ := io.ReadAll(response.Body)
 
@@ -64,6 +75,8 @@ func (s *routeGenService) GenRoutes(quit chan bool, count int, minDistance, maxD
 	fmt.Println("Converting to graph")
 
 	routeFinder := NewRouteFinder(graph.NewGraph(&rawMapData, lat, lon, heuristics))
+
+	eventChan <- "Generating routes"
 
 	fmt.Println("Finding routes")
 

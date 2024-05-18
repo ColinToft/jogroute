@@ -181,8 +181,8 @@ func (r *RouteNode) Heuristic(minDistance float64) int {
 	// These parameters are hand-tuned for now but I would like to make them parameters eventually
 	heuristicScale := 50.0 / minDistance
 	// waysScale := 0.05
-	waysScale := 700.0
-	distanceScale := 1.5
+	waysScale := 500.0
+	distanceScale := 1.0
 
 	// Also tried the following but seems to lead to generally worse results
 	// return int(heuristicScale * (-waysScale*(r.Distance/float64(r.Ways)) - distanceScale*r.Distance/minDistance - r.EdgeHeuristics/minDistance))
@@ -196,9 +196,11 @@ func (r *RouteTree) routeFromIndex(g *graph.Graph, endNode int) Route {
 	current := &r.Routes[endNode]
 	distance := current.Distance
 	edgeIDs := []int{}
+	wayIDs := []int{}
 	for {
 		nodeIDs = append(nodeIDs, current.LastNode)
 		edgeIDs = append(edgeIDs, current.LastEdge)
+		wayIDs = append(wayIDs, current.LastWay)
 		if current.Prev == -1 {
 			break
 		}
@@ -207,11 +209,12 @@ func (r *RouteTree) routeFromIndex(g *graph.Graph, endNode int) Route {
 
 	fmt.Printf("Before expansion the route is %v\n", nodeIDs)
 	fmt.Printf("The edges are %v\n", edgeIDs)
+	fmt.Printf("The ways are %v\n", wayIDs)
 	nodeIDs = g.ExpandRoute(nodeIDs)
-	fmt.Printf("After expansion the route is %v\n", nodeIDs)
+	fmt.Printf("After expansion the nodes is %v\n", nodeIDs)
 	nodes := make([][]float64, len(nodeIDs))
 
-	// Convert the route to a list of nodes
+	// Convert the route to a list of node objects
 	for i, node := range nodeIDs {
 		nodes[i] = []float64{g.Nodes[node].Lat, g.Nodes[node].Lon}
 	}

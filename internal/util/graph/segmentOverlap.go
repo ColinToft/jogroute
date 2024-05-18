@@ -72,14 +72,23 @@ func (l *LineSegment) IsCloseAndParallel(other LineSegment, doPrint bool) bool {
 	overlap := 0.1 // There needs to be at least a little overlap between the line segments
 	notBothOnSameSide := !(tFrom < overlap && tTo < overlap) && !(tFrom > (1-overlap) && tTo > (1-overlap))
 
+	// is the otherSegment mostly overlapping with this one?
+	// This mainly handles the case where the other LineSegment is much smaller than this one
+	tSmaller := math.Min(tFrom, tTo)
+	tLarger := math.Max(tFrom, tTo)
+	amountInside := math.Min(tLarger, 1) - math.Max(tSmaller, 0)
+	mostlyFactor := 0.9
+	mostlyIn := amountInside > (tLarger-tSmaller)*mostlyFactor
+
 	angleBound := 0.1        // If we are within this angle of 0 or pi, we consider the lines parallel
 	distanceBound := 0.00034 // If we are within this distance of the line, we consider the lines close
 
+	if doPrint {
+		fmt.Printf("Angle: %f, Distance to from: %f, to: %f, tFrom: %f, tTo: %f\n", angle, distanceToFrom, distanceToTo, tFrom, tTo)
+	}
+
 	// If the angle is close to 0 or pi, then the lines are parallel
-	if (angle < angleBound || angle > math.Pi-angleBound) && (distanceToFrom < distanceBound || distanceToTo < distanceBound) && notBothOnSameSide {
-		if doPrint {
-			fmt.Printf("Angle: %f, Distance to from: %f, to: %f, tFrom: %f, tTo: %f\n", angle, distanceToFrom, distanceToTo, tFrom, tTo)
-		}
+	if (angle < angleBound || angle > math.Pi-angleBound) && (distanceToFrom < distanceBound || distanceToTo < distanceBound) && (notBothOnSameSide || mostlyIn) {
 		return true
 	}
 

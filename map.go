@@ -33,8 +33,6 @@ func getMapJSON(lat, lon float64) mapdata.MapData {
 	// Read the response body
 	body, _ := io.ReadAll(resp.Body)
 
-	// fmt.Println(string(body))
-
 	// Unmarshal the JSON into a MapData struct
 	var rawMapData mapdata.MapData
 	json.Unmarshal(body, &rawMapData)

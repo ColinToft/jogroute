@@ -45,8 +45,7 @@ const ChangeView: React.FC<{ points: CoordList }> = ({ points }) => {
         map.setView([51.505, -0.09], 13);
         return null;
     }
-    console.log(points);
-    map.fitBounds(points);
+    map.fitBounds(points, { padding: [20, 20] });
     return null;
 };
 
@@ -57,11 +56,12 @@ const RouteMap: React.FC<MapProps> = ({ points }) => {
         <MapContainer
             zoom={13}
             scrollWheelZoom={true}
+            zoomSnap={0}
             className={styles.mapContainer}
         >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
             />
             <LayerGroup>
                 <Polyline pathOptions={{ color: "blue" }} positions={points} />

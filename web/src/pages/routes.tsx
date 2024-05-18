@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { CSSTransition } from "react-transition-group";
 import { Inter } from "next/font/google";
 import Head from "next/head";
+import styles from "../components/Map.module.css";
 import "animate.css";
 import {
     AbsoluteCenter,
@@ -59,6 +60,8 @@ const RoutesPage: React.FC = () => {
 
     // Load routes from the server.
     const [routes, setRoutes] = useState<Route[]>([]);
+
+    const [loadingMessage, setLoadingMessage] = useState<string>("Loading");
 
     const [selectedRoute, setSelectedRoute] = useState<number>(0);
     const [hoveredRoute, setHoveredRoute] = useState<number>(-1);
@@ -127,6 +130,14 @@ const RoutesPage: React.FC = () => {
                 });
                 return;
             }
+            if (
+                event.data === "Loading map data" ||
+                event.data === "Processing map data" ||
+                event.data === "Generating routes"
+            ) {
+                setLoadingMessage(event.data);
+                return;
+            }
             if (event.data === "Error") {
                 eventSource.close();
                 console.log("Error occurred.");
@@ -166,7 +177,14 @@ const RoutesPage: React.FC = () => {
     }, [router.isReady]);
 
     return (
-        <div className={inter.className}>
+        <div
+            className={inter.className}
+            style={{
+                height: "100vh",
+                display: "flex",
+                flexDirection: "column",
+            }}
+        >
             <Head>
                 <title>{metadata.title}</title>
                 <meta name='description' content={metadata.description} />
@@ -174,19 +192,27 @@ const RoutesPage: React.FC = () => {
             <Heading p='10px' bgGradient='linear(to-r, #20ffff, #4060ff)'>
                 JogRoute
             </Heading>
-            <SimpleGrid p='10px' columns={2} spacing={10}>
+            <Flex
+                p='10px'
+                flex='1'
+                gap='20px'
+                minHeight='0'
+                flexDirection='row'
+            >
                 <MapWithNoSSR
                     points={
                         routes.length > 0 ? routes[selectedRoute].route : []
                     }
                 />
-                <GridItem>
+                <Flex
+                    flex='1'
+                    alignContent='space-between'
+                    flexDirection='column'
+                >
                     {routes.length <= 0 ? (
-                        <Center h='100%'>
+                        <Center height='100%' width='100%'>
                             <div>
-                                <Heading size='md'>
-                                    Generating routes...
-                                </Heading>
+                                <Heading size='md'>{loadingMessage}...</Heading>
                                 <br />
                                 <Center>
                                     <CircularProgress isIndeterminate />
@@ -196,11 +222,12 @@ const RoutesPage: React.FC = () => {
                     ) : (
                         <Box
                             mb='10px'
-                            overflow='hidden'
+                            flex='1'
+                            width='100%'
+                            overflowX='hidden'
                             overflowY='auto'
-                            maxHeight='80vh'
                         >
-                            <SimpleGrid columns={2} spacing={6} mr='10px'>
+                            <SimpleGrid columns={2} spacing={4} mr='10px'>
                                 {routes.map((route, index) => (
                                     // Transition to have the cards slide in from the bottom.
                                     <CSSTransition
@@ -230,6 +257,7 @@ const RoutesPage: React.FC = () => {
                                             onMouseLeave={() =>
                                                 setHoveredRoute(-1)
                                             }
+                                            borderRadius='10px'
                                         >
                                             <Grid templateColumns='repeat(2, 1fr)'>
                                                 <RoutePreviewWithNoSSR
@@ -254,19 +282,17 @@ const RoutesPage: React.FC = () => {
                             </SimpleGrid>
                         </Box>
                     )}
-                </GridItem>
-            </SimpleGrid>
-
-            <Link href='/'>
-                <Button
-                    position='fixed'
-                    bottom='10px'
-                    right='10px'
-                    colorScheme='blue'
-                >
-                    Back
-                </Button>
-            </Link>
+                    <Link href='/' alignSelf='flex-end'>
+                        <Button
+                            marginBottom='10px'
+                            marginRight='10px'
+                            colorScheme='blue'
+                        >
+                            Back
+                        </Button>
+                    </Link>
+                </Flex>
+            </Flex>
         </div>
     );
 };
